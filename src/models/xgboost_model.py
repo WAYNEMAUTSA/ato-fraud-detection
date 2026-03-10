@@ -1,4 +1,4 @@
-# ─── Step 3: XGBoost Fraud Detection Model ───────────────────────────────────
+# ─── XGBoost Fraud Detection Model ───────────────────────────────────
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
