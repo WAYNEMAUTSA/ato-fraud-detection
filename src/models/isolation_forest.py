@@ -65,4 +65,3 @@ print("⏳ Saving model...")
 joblib.dump(iso_forest, "src/models/saved/isolation_forest.pkl")
 
 print("✅ Model saved to src/models/saved/isolation_forest.pkl")
-print("\n🎉 Step 4 Complete — Isolation Forest trained and saved!")
