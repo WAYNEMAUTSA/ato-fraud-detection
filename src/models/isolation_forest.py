@@ -1,4 +1,4 @@
-# ─── Isolation Forest Anomaly Detection ──────────────────────────────
+# ─── Step 4: Isolation Forest Anomaly Detection ──────────────────────────────
 # This model finds unusual transactions without needing fraud labels.
 # It learns what "normal" looks like and flags anything different.
 
@@ -25,10 +25,10 @@ print(f"   Normal: {(y==0).sum():,}")
 print("⏳ Training Isolation Forest... this may take a few minutes")
 
 iso_forest = IsolationForest(
-    n_estimators=100,       # number of trees
-    contamination=0.035,    # we tell it ~3.5% of data is fraud
+    n_estimators=100,
+    contamination=0.035,
     random_state=42,
-    n_jobs=-1               # use all CPU cores to go faster
+    n_jobs=-1
 )
 
 iso_forest.fit(X)
@@ -38,14 +38,10 @@ print("✅ Isolation Forest trained successfully")
 # ─── Evaluate Isolation Forest ───────────────────────────────────────────────
 print("⏳ Evaluating model...")
 
-# Isolation Forest returns -1 for anomalies and 1 for normal
-# We convert to 1 for fraud and 0 for normal to match our labels
 raw_predictions = iso_forest.predict(X)
 y_pred = [1 if x == -1 else 0 for x in raw_predictions]
 
-# Get anomaly scores (lower score = more anomalous)
 scores = iso_forest.decision_function(X)
-# Flip scores so higher = more suspicious
 anomaly_scores = -scores
 
 precision = precision_score(y, y_pred)
@@ -65,3 +61,4 @@ print("⏳ Saving model...")
 joblib.dump(iso_forest, "src/models/saved/isolation_forest.pkl")
 
 print("✅ Model saved to src/models/saved/isolation_forest.pkl")
+print("\n🎉 Step 4 Complete — Isolation Forest trained and saved!")
