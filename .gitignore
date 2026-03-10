@@ -2,5 +2,7 @@
 *.pyc
 .env
 data/raw/*.csv
+data/raw/*.zip
+data/processed/*.csv
 *.pkl
 .DS_Store
