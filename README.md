@@ -1,7 +1,7 @@
 ﻿# 🛡 ATO Shield
 AI-Powered Account Takeover Fraud Detection for Mobile Money Platforms
 
-![Python](https://img.shields.io/badge/Python-3.11-blue)
+![Python](https://img.shields.io/badge/Python-3.14-blue)
 ![XGBoost](https://img.shields.io/badge/XGBoost-3.2.0-orange)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.55.0-red)
 ![SHAP](https://img.shields.io/badge/SHAP-0.51.0-green)
@@ -9,13 +9,27 @@ AI-Powered Account Takeover Fraud Detection for Mobile Money Platforms
 ---
 
 ## 📋 Project Overview
-This project builds an AI system that automatically detects Account Takeover (ATO) 
-fraud in mobile money transactions. It uses two AI models working together and 
-explains every decision in plain language.
+ATO Shield is an AI system that automatically detects Account Takeover (ATO)
+fraud in mobile money transactions. It is built as a Paytm-style mobile web app
+that gives customers full visibility into their account security in one place.
 
-The system has two interfaces:
-- 👤 **Customer View** — Paytm-style UI showing alerts on suspicious transactions
-- 📊 **Analyst Dashboard** — Full fraud investigation dashboard with SHAP explanations
+---
+
+## 📱 App Features
+The app has two tabs:
+
+**Tab 1 — Home**
+- Paytm-style wallet balance card
+- Send Money quick actions
+- Live fraud alert with block/confirm buttons
+- Recent transactions with risk badges
+
+**Tab 2 — My Security**
+- Summary: total transactions, blocked, flagged
+- Blocked transactions list with reasons
+- Risk breakdown (HIGH / MEDIUM / LOW)
+- Top fraud signals in plain English
+- Suspicious activity timeline
 
 ---
 
@@ -23,23 +37,21 @@ The system has two interfaces:
 ```
 ato-fraud-detection/
   ├── data/
-  │   ├── raw/                        # IEEE-CIS dataset (not on GitHub)
-  │   └── processed/                  # Cleaned & balanced data (not on GitHub)
+  │   ├── raw/                         # IEEE-CIS dataset (not on GitHub)
+  │   └── processed/                   # Cleaned & balanced data (not on GitHub)
   ├── src/
   │   ├── preprocessing/
-  │   │   └── pipeline.py             # Step 2: data cleaning + SMOTE
+  │   │   └── pipeline.py              # Data cleaning + SMOTE
   │   ├── models/
-  │   │   ├── xgboost_model.py        # Step 3: supervised fraud detector
-  │   │   ├── isolation_forest.py     # Step 4: anomaly detector
-  │   │   └── saved/                  # Trained .pkl model files
+  │   │   ├── xgboost_model.py         # Supervised fraud detector
+  │   │   ├── isolation_forest.py      # Anomaly detector
+  │   │   └── saved/                   # Trained .pkl model files
   │   ├── scoring/
-  │   │   └── risk_scorer.py          # Step 5: 70/30 score fusion
+  │   │   └── risk_scorer.py           # 70/30 score fusion
   │   └── explainability/
-  │       └── shap_explainer.py       # Step 6: SHAP feature importance
+  │       └── shap_explainer.py        # SHAP feature importance
   ├── app/
-  │   ├── home.py                     # Landing page
-  │   ├── customer.py                 # Customer alert UI (Paytm style)
-  │   └── dashboard.py                # Analyst dashboard
+  │   └── customer.py                  # Full Paytm-style customer app
   ├── requirements.txt
   └── README.md
 ```
@@ -50,7 +62,7 @@ ato-fraud-detection/
 
 | Layer | Technology |
 |-------|-----------|
-| Language | Python 3.11 |
+| Language | Python 3.14 |
 | Supervised Model | XGBoost |
 | Unsupervised Model | Isolation Forest |
 | Data Balancing | SMOTE |
@@ -66,8 +78,6 @@ ato-fraud-detection/
 
 | Model | Precision | Recall | F1-Score | ROC-AUC |
 |-------|-----------|--------|----------|---------|
-| Logistic Regression | 0.71 | 0.62 | 0.66 | 0.84 |
-| Random Forest | 0.84 | 0.79 | 0.81 | 0.91 |
 | Isolation Forest only | 0.060 | 0.060 | 0.060 | 0.627 |
 | XGBoost only | 0.960 | 0.909 | 0.934 | 0.982 |
 | **XGBoost + Isolation Forest** | **0.960** | **0.909** | **0.934** | **0.982** |
@@ -89,8 +99,7 @@ pip install -r requirements.txt
 
 ### 3. Download the dataset
 - Go to kaggle.com/competitions/ieee-fraud-detection
-- Download train_transaction.csv and train_identity.csv
-- Place them in data/raw/
+- Download train_transaction.csv and place in data/raw/
 
 ### 4. Run preprocessing
 ```bash
@@ -101,11 +110,12 @@ python src/preprocessing/pipeline.py
 ```bash
 python src/models/xgboost_model.py
 python src/models/isolation_forest.py
+python src/scoring/risk_scorer.py
 ```
 
 ### 6. Run the app
 ```bash
-streamlit run app/home.py
+python -m streamlit run app/customer.py
 ```
 
 ---
@@ -120,5 +130,6 @@ streamlit run app/home.py
 
 ## 👨‍🎓 Academic Information
 - **Project:** AI-Powered ATO Fraud Detection for Mobile Money
-- **Dataset:** IEEE-CIS Fraud Detection (Vesta Corporation)
+- **Models:** XGBoost + Isolation Forest hybrid
+- **Explainability:** SHAP
 - **References:** Sarna et al. (2025), ASEP Framework (2025)
