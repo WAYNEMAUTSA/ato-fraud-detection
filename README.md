@@ -51,7 +51,7 @@ ato-fraud-detection/
   │   └── explainability/
   │       └── shap_explainer.py        # SHAP feature importance
   ├── app/
-  │   └── customer.py                  # Full Paytm-style customer app
+  │   └── customer.py                  # Full Mobile Money Replica App customer app
   ├── requirements.txt
   └── README.md
 ```
@@ -128,7 +128,7 @@ python -m streamlit run app/customer.py
 
 ---
 
-## 👨‍🎓 Academic Information
+## Information
 - **Project:** AI-Powered ATO Fraud Detection for Mobile Money
 - **Models:** XGBoost + Isolation Forest hybrid
 - **Explainability:** SHAP
