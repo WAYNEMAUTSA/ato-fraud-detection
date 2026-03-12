@@ -2,12 +2,20 @@ import time
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import os
 
 st.set_page_config(page_title="ATO Shield", page_icon="🛡", layout="centered")
 
 # ── Load Data ─────────────────────────────────────────────────────────────────
 @st.cache_data
 def load_data():
+    # Get the directory where customer.py is located
+    base_path = os.path.dirname(__file__)
+    # Go up one level to the root, then into data/processed
+    file_path = os.path.join(base_path, "..", "data", "processed", "risk_scores.csv")
+    
+    scores = pd.read_csv(file_path)
+    # ... rest of your code
     scores = pd.read_csv("data/processed/risk_scores.csv")
     X = pd.read_csv("data/processed/X_test.csv")
     return scores, X
