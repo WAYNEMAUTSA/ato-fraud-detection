@@ -9,11 +9,15 @@ st.set_page_config(page_title="ATO Shield", page_icon="🛡", layout="centered")
 # ── Load Data ─────────────────────────────────────────────────────────────────
 @st.cache_data
 def load_data():
-    # Get the directory where customer.py is located
+    # Temporary debug code
     base_path = os.path.dirname(__file__)
-    # Go up one level to the root, then into data/processed
     file_path = os.path.join(base_path, "..", "data", "processed", "risk_scores.csv")
-    
+
+    print(f"DEBUG: Current directory: {os.getcwd()}")
+    print(f"DEBUG: __file__ is: {__file__}")
+    print(f"DEBUG: Looking for file at: {os.path.abspath(file_path)}")
+    print(f"DEBUG: Does path exist? {os.path.exists(file_path)}")
+
     scores = pd.read_csv(file_path)
     # ... rest of your code
     scores = pd.read_csv("data/processed/risk_scores.csv")
