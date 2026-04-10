@@ -6,3 +6,15 @@ data/raw/*.zip
 data/processed/*.csv
 *.pkl
 .DS_Store
+  
+# Database files  
+*.db  
+*.db-shm  
+*.db-wal  
+*.sqlite3  
+  
+# Large datasets  
+paysim*.csv  
+  
+# Log files  
+uvicorn*.log 
