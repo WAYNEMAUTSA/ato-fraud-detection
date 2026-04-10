@@ -11,7 +11,7 @@ headers = {
 }
 
 payload = {
-    "transaction_id": "TXN_TEST_003",
+    "transaction_id": "TXN_TEST_006",
     "step": 3,
     "type": "CASH_OUT",
     "amount": 120000,

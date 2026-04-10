@@ -6,11 +6,13 @@ from sqlalchemy.orm import Session
 from store.models import Case, SHAPReason, Decision, Transaction, Analyst, Bank
 
 
-def get_open_cases(db: Session, bank_id: UUID, limit: int = 50):
+def get_open_cases(db: Session, bank_id=None, limit: int = 50):
     """Get open cases for a bank, ordered by risk score (highest first)"""
+    query = db.query(Case).filter(Case.status == "OPEN")
+    if bank_id is not None:
+        query = query.filter(Case.bank_id == str(bank_id))
     return (
-        db.query(Case)
-        .filter(Case.bank_id == bank_id, Case.status == "OPEN")
+        query
         .order_by(Case.risk_score.desc(), Case.created_at.asc())
         .limit(limit)
         .all()
@@ -84,10 +86,9 @@ def get_bank_by_api_key(db: Session, api_key: str):
     return db.query(Bank).filter(Bank.api_key == api_key).first()
 
 
-def get_open_case_count(db: Session, bank_id: UUID):
+def get_open_case_count(db: Session, bank_id=None):
     """Get count of open cases for a bank"""
-    return (
-        db.query(Case)
-        .filter(Case.bank_id == bank_id, Case.status == "OPEN")
-        .count()
-    )
+    query = db.query(Case).filter(Case.status == "OPEN")
+    if bank_id is not None:
+        query = query.filter(Case.bank_id == str(bank_id))
+    return query.count()
