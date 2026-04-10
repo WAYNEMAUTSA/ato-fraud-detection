@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Operations Centre — ATO Shield v2{% endblock %}
+
+{% block page_title %}Operations Centre{% endblock %}
+
+{% block content %}
+<!-- Stat Cards Row -->
+<div class="card-grid">
+  <!-- Threat Level Indicator -->
+  <div class="card threat-indicator" style="border-left: 3px solid {{ threat_color }}">
+    <div class="threat-dot {{ threat_level.lower() }}"></div>
+    <div>
+      <div class="threat-label" style="color: {{ threat_color }}">{{ threat_label }}</div>
+      <div class="threat-sub">{{ open_cases }} cases require attention</div>
+    </div>
+  </div>
+  
+  <!-- Open Cases -->
+  <div class="card stat-card">
+    <div class="stat-label">Cases Open</div>
+    <div class="stat-value">{{ open_cases }}</div>
+    <div class="stat-sub">awaiting decision</div>
+  </div>
+  
+  <!-- Screened Today -->
+  <div class="card stat-card">
+    <div class="stat-label">Screened Today</div>
+    <div class="stat-value">{{ screened_count | default(0) | int }}</div>
+    <div class="stat-sub">transactions</div>
+  </div>
+  
+  <!-- Protected Value -->
+  <div class="card stat-card">
+    <div class="stat-label">Protected Today</div>
+    <div class="stat-value" style="color: var(--risk-low)">₹{{ protected_value | default('0') }}</div>
+    <div class="stat-sub">across {{ screened_count | default(0) }} transactions</div>
+  </div>
+</div>
+
+<!-- Transaction Volume Chart -->
+<div class="card chart-container mb-3">
+  <div class="card-title">Transaction Volume — Today</div>
+  <canvas id="volumeChart" height="100"></canvas>
+</div>
+
+<!-- Bottom Row: Recent Flags + Fraud Type Breakdown -->
+<div class="card-grid-2">
+  <!-- Recent Flags -->
+  <div class="card">
+    <div class="card-title">Recent Flags</div>
+    {% if recent_cases %}
+      {% for case in recent_cases %}
+      <div class="activity-item" style="cursor: pointer;" onclick="window.location.href='/case/{{ case.case_id }}'">
+        <span class="badge badge-{{ case.risk_level.lower() }}" style="margin-right: 8px;">{{ case.risk_level }}</span>
+        <span class="amount">₹{{ case.amount | int }}</span>
+        <span class="time">{{ case.minutes_ago }} min ago</span>
+        <span class="location">{{ case.fraud_type or 'ANO' }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state muted">
+        <div class="text">🛡 System active. Screening transactions.</div>
+      </div>
+    {% endif %}
+  </div>
+  
+  <!-- Today's Breakdown -->
+  <div class="card">
+    <div class="card-title">Today's Breakdown</div>
+    <canvas id="fraudTypeChart" height="200"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Transaction Volume Chart
+const volumeCtx = document.getElementById('volumeChart').getContext('2d');
+new Chart(volumeCtx, {
+  type: 'bar',
+  data: {
+    labels: {{ volume_labels | tojson }},
+    datasets: [
+      {
+        label: 'Legitimate',
+        data: {{ volume_legit | tojson }},
+        backgroundColor: 'rgba(107, 140, 255, 0.6)',
+        borderColor: 'rgba(107, 140, 255, 1)',
+        borderWidth: 1,
+        borderRadius: 4
+      },
+      {
+        label: 'Flagged',
+        data: {{ volume_flagged | tojson }},
+        backgroundColor: 'rgba(232, 64, 64, 0.6)',
+        borderColor: 'rgba(232, 64, 64, 1)',
+        borderWidth: 1,
+        borderRadius: 4
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: { color: '#8B90A7' }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#8B90A7' },
+        grid: { color: '#2E3348' }
+      },
+      y: {
+        ticks: { color: '#8B90A7' },
+        grid: { color: '#2E3348' }
+      }
+    }
+  }
+});
+
+// Fraud Type Breakdown Chart
+const fraudTypeCtx = document.getElementById('fraudTypeChart').getContext('2d');
+new Chart(fraudTypeCtx, {
+  type: 'doughnut',
+  data: {
+    labels: {{ fraud_type_labels | tojson }},
+    datasets: [{
+      data: {{ fraud_type_data | tojson }},
+      backgroundColor: [
+        'rgba(232, 64, 64, 0.8)',
+        'rgba(255, 107, 53, 0.8)',
+        'rgba(240, 165, 0, 0.8)',
+        'rgba(155, 89, 182, 0.8)',
+        'rgba(107, 140, 255, 0.8)'
+      ],
+      borderColor: '#1A1D27',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color: '#8B90A7', padding: 16 }
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

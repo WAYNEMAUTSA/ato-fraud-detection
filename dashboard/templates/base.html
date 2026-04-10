@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}ATO Shield v2{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  <script src="{{ url_for('static', path='/ws_client.js') }}" defer></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <span class="shield-icon">🛡</span>
+        <span>ATO Shield</span>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <a href="/dashboard" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+          <span class="icon">⊞</span>
+          <span>Overview</span>
+        </a>
+        <a href="/queue" class="nav-item {% if active_page == 'queue' %}active{% endif %}">
+          <span class="icon">⚑</span>
+          <span>Queue</span>
+          <span class="badge-count" id="queue-badge">{{ open_case_count or 0 }}</span>
+        </a>
+        <a href="/dashboard" class="nav-item {% if active_page == 'cases' %}active{% endif %}">
+          <span class="icon">◉</span>
+          <span>Cases</span>
+        </a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <a href="/dashboard" class="nav-item">
+          <span class="icon">⚙</span>
+          <span>Settings</span>
+        </a>
+        <a href="/dashboard" class="nav-item">
+          <span class="icon">→</span>
+          <span>Sign Out</span>
+        </a>
+      </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <h1 class="topbar-title">{% block page_title %}Overview{% endblock %}</h1>
+        <div class="topbar-user">
+          <div class="user-avatar">DA</div>
+          <span>Demo Analyst</span>
+          <span>▼</span>
+        </div>
+      </header>
+      
+      <!-- Content Area -->
+      <div class="content">
+        <!-- WebSocket Status Banner -->
+        <div id="ws-status" style="display: none; background: var(--risk-medium-bg); color: var(--risk-medium); padding: 8px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 13px;">
+          ⚠ Live updates paused — reconnecting...
+        </div>
+        
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+  
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

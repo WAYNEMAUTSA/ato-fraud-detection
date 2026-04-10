@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Alert Queue — ATO Shield v2{% endblock %}
+
+{% block page_title %}Alert Queue{% endblock %}
+
+{% block content %}
+<!-- Filter Tabs -->
+<div class="flex-between mb-3">
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-filter="all">All</button>
+    <button class="filter-tab" data-filter="HIGH">HIGH</button>
+    <button class="filter-tab" data-filter="MEDIUM">MEDIUM</button>
+  </div>
+  <div class="flex gap-1">
+    <button class="filter-tab" id="sort-newest" style="padding: 6px 12px; font-size: 12px;">Newest</button>
+    <button class="filter-tab active" id="sort-oldest" style="padding: 6px 12px; font-size: 12px;">Oldest</button>
+  </div>
+</div>
+
+<!-- Case List -->
+<div id="case-list">
+  {% if cases %}
+    {% for case in cases %}
+    <div class="case-card case-{{ case.risk_level.lower() }}" data-risk="{{ case.risk_level }}" onclick="window.location.href='/case/{{ case.case_id }}'">
+      <div class="case-left">
+        <span class="badge badge-{{ case.risk_level.lower() }}">{{ case.risk_level }}</span>
+        {% if case.fraud_type %}
+        <span class="fraud-tag fraud-{{ case.fraud_type.lower() }}">{{ case.fraud_type }}</span>
+        {% endif %}
+      </div>
+      <div class="case-middle">
+        <div class="case-name">{{ case.customer_name or 'Unknown' }}</div>
+        <div class="case-amount">₹{{ case.amount | default(0) | int }}</div>
+        <div class="case-reason">{{ case.reason_summary or 'Flagged for review' }}</div>
+      </div>
+      <div class="case-right">
+        <span class="case-time">{{ case.minutes_ago }} min ago</span>
+        <a href="/case/{{ case.case_id }}" class="case-review">Review →</a>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state success">
+      <div class="icon">✓</div>
+      <div class="text">All clear. No open cases.</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Filter tabs functionality
+document.querySelectorAll('.filter-tabs .filter-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    // Update active state
+    this.parentElement.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    
+    const filter = this.dataset.filter;
+    const caseCards = document.querySelectorAll('.case-card');
+    
+    caseCards.forEach(card => {
+      if (filter === 'all' || card.dataset.risk === filter) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -1,135 +1,102 @@
-﻿# 🛡 ATO Shield
-AI-Powered Account Takeover Fraud Detection for Mobile Money Platforms
+# ATO Shield v2
 
-![Python](https://img.shields.io/badge/Python-3.14-blue)
-![XGBoost](https://img.shields.io/badge/XGBoost-3.2.0-orange)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.55.0-red)
-![SHAP](https://img.shields.io/badge/SHAP-0.51.0-green)
+**Fraud analyst workstation for financial institutions.**
+
+Banks connect via API. Every transaction is silently scored by the ML engine. Only flagged transactions surface to analysts — presented as plain-English alerts with full context and clear actions.
 
 ---
 
-## 📋 Project Overview
-ATO Shield is an AI system that automatically detects Account Takeover (ATO)
-fraud in mobile money transactions. It is built as a Paytm-style mobile web app
-that gives customers full visibility into their account security in one place.
+## Quick Start
 
----
+```bash
+# Start the full stack (PostgreSQL + ATO Shield)
+docker-compose up -d
 
-## 📱 App Features
-The app has two tabs:
+# Run the ML pipeline (train models)
+python pipeline/run_all.py
 
-**Tab 1 — Home**
-- Paytm-style wallet balance card
-- Send Money quick actions
-- Live fraud alert with block/confirm buttons
-- Recent transactions with risk badges
+# Start the API + Dashboard
+uvicorn api.main:app --reload
 
-**Tab 2 — My Security**
-- Summary: total transactions, blocked, flagged
-- Blocked transactions list with reasons
-- Risk breakdown (HIGH / MEDIUM / LOW)
-- Top fraud signals in plain English
-- Suspicious activity timeline
-
----
-
-## 🏗 Project Structure
-```
-ato-fraud-detection/
-  ├── data/
-  │   ├── raw/                         # IEEE-CIS dataset (not on GitHub)
-  │   └── processed/                   # Cleaned & balanced data (not on GitHub)
-  ├── src/
-  │   ├── preprocessing/
-  │   │   └── pipeline.py              # Data cleaning + SMOTE
-  │   ├── models/
-  │   │   ├── xgboost_model.py         # Supervised fraud detector
-  │   │   ├── isolation_forest.py      # Anomaly detector
-  │   │   └── saved/                   # Trained .pkl model files
-  │   ├── scoring/
-  │   │   └── risk_scorer.py           # 70/30 score fusion
-  │   └── explainability/
-  │       └── shap_explainer.py        # SHAP feature importance
-  ├── app/
-  │   └── customer.py                  # Full Mobile Money Replica App customer app
-  ├── requirements.txt
-  └── README.md
+# Open the dashboard
+# http://localhost:8000/dashboard
 ```
 
 ---
 
-## 🤖 Tech Stack
+## What is ATO Shield?
+
+ATO Shield is a **fraud analyst workstation** — not a developer tool. Banks integrate via API, and fraud analysts review flagged cases in a professional dashboard.
+
+- **Silent scoring** — Every transaction scored in background
+- **Plain-English alerts** — No raw SHAP values, no model names
+- **Fast decisions** — BLOCK / FREEZE / ESCALATE / CLEAR in one click
+- **Multi-bank** — Complete data isolation per institution
+- **Real-time** — WebSocket push notifications for HIGH risk cases
+
+---
+
+## Architecture
+
+```
+Bank → POST /api/v1/transaction → ATO Shield API
+                                    │
+                                    ├── Validates + stores transaction
+                                    ├── ML engine scores (XGBoost + Isolation Forest)
+                                    ├── Creates case if MEDIUM/HIGH
+                                    └── Pushes alert via WebSocket (HIGH)
+                                    │
+                                    ▼
+                          Analyst reviews in dashboard
+```
+
+---
+
+## Folder Structure
+
+```
+ato-shield-v2/
+├── api/                 # FastAPI backend
+├── engine/              # ML scoring engine
+├── pipeline/            # ML training scripts
+├── dashboard/           # Jinja2 frontend
+├── store/               # Database layer
+├── simulator/           # Dev transaction generator
+├── tests/               # pytest suite
+├── docker/              # Containerisation
+└── data/                # PaySim dataset
+```
+
+---
+
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Language | Python 3.14 |
-| Supervised Model | XGBoost |
-| Unsupervised Model | Isolation Forest |
-| Data Balancing | SMOTE |
-| Explainability | SHAP |
-| Frontend | Streamlit |
-| Charts | Plotly |
-| Dataset | IEEE-CIS Fraud Detection (Kaggle) |
-| Deployment | Streamlit Cloud |
+| API | FastAPI (Python 3.11+) |
+| Dashboard | Jinja2 + HTML/CSS |
+| Database | PostgreSQL |
+| ML | XGBoost + Isolation Forest + SHAP |
+| Real-time | WebSockets |
+| Containerisation | Docker + docker-compose |
 
 ---
 
-## 📊 Model Results
+## Deployment
 
-| Model | Precision | Recall | F1-Score | ROC-AUC |
-|-------|-----------|--------|----------|---------|
-| Isolation Forest only | 0.060 | 0.060 | 0.060 | 0.627 |
-| XGBoost only | 0.960 | 0.909 | 0.934 | 0.982 |
-| **XGBoost + Isolation Forest** | **0.960** | **0.909** | **0.934** | **0.982** |
-
----
-
-## 🚀 How to Run Locally
-
-### 1. Clone the repo
-```bash
-git clone https://github.com/WAYNEMAUTSA/ato-fraud-detection.git
-cd ato-fraud-detection
-```
-
-### 2. Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Download the dataset
-- Go to kaggle.com/competitions/ieee-fraud-detection
-- Download train_transaction.csv and place in data/raw/
-
-### 4. Run preprocessing
-```bash
-python src/preprocessing/pipeline.py
-```
-
-### 5. Train the models
-```bash
-python src/models/xgboost_model.py
-python src/models/isolation_forest.py
-python src/scoring/risk_scorer.py
-```
-
-### 6. Run the app
-```bash
-python -m streamlit run app/customer.py
-```
+| Stage | App | Database |
+|-------|-----|----------|
+| Development | Local Docker | PostgreSQL (Docker) |
+| Demo | Railway | Supabase |
+| Production | DigitalOcean | Managed PostgreSQL |
 
 ---
 
-## 📁 Dataset
-- **Name:** IEEE-CIS Fraud Detection Dataset
-- **Source:** Kaggle — kaggle.com/competitions/ieee-fraud-detection
-- **Size:** 590,540 transactions, 394 features
-- **Fraud rate:** 3.5%
+## Documentation
+
+- `ato_shield_v2_master.md` — Master reference document (all decisions)
+- `ato_shield_v2_frontend.md` — Frontend design specification
 
 ---
 
-## Information
-- **Project:** AI-Powered ATO Fraud Detection for Mobile Money
-- **Models:** XGBoost + Isolation Forest hybrid
-- **Explainability:** SHAP
-- **References:** Sarna et al. (2025), ASEP Framework (2025)
+**Built for analysts. Invisible technology. Clear decisions.**

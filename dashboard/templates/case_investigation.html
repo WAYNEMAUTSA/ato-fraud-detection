@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Case #{{ case_id }} — ATO Shield v2{% endblock %}
+
+{% block page_title %}<a href="/queue" style="color: var(--text-secondary); margin-right: 12px;">← Back to Queue</a>{% endblock %}
+
+{% block content %}
+<!-- Case Header -->
+<div class="card case-header" style="background: var(--risk-{{ case.risk_level.lower() }}-bg); border-left: 3px solid var(--risk-{{ case.risk_level.lower() }});">
+  <div class="flex-between">
+    <div>
+      <div class="case-title">
+        <span class="badge badge-{{ case.risk_level.lower() }}" style="margin-right: 8px;">{{ case.risk_level }}</span>
+        {{ case.fraud_type or 'Anomalous' }} — {% if case.fraud_type == 'ATO' %}Account Takeover{% elif case.fraud_type == 'VEL' %}Velocity Fraud{% elif case.fraud_type == 'AMT' %}Large Amount Anomaly{% elif case.fraud_type == 'NGT' %}Off-Hours Fraud{% else %}Anomalous Pattern{% endif %}
+      </div>
+      <div class="case-meta">
+        Flagged {{ case.minutes_ago }} minutes ago · Transaction {{ case.transaction_id }}
+      </div>
+    </div>
+    <div style="color: var(--text-dim); font-size: 12px;">
+      Case #{{ case.case_id[:8].upper() }}
+    </div>
+  </div>
+</div>
+
+<!-- Transaction + Customer Profile -->
+<div class="case-details-grid">
+  <div class="card">
+    <div class="card-title">Transaction</div>
+    <div class="detail-list">
+      <div class="detail-item">
+        <span class="label">Amount</span>
+        <span class="value">₹{{ case.transaction.amount | default(0) | int }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">To</span>
+        <span class="value">{{ case.transaction.nameDest | default('Unknown') }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Via</span>
+        <span class="value">{{ case.transaction.type | default('Unknown') }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Time</span>
+        <span class="value">{{ case.transaction.step | default(0) }}:00</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-title">Customer Profile</div>
+    <div class="detail-list">
+      <div class="detail-item">
+        <span class="label">Name</span>
+        <span class="value">{{ case.customer.name | default('Unknown') }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Account</span>
+        <span class="value">{{ case.customer.account_id | default('Unknown') }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Avg Transaction</span>
+        <span class="value">₹{{ case.customer.avg_transaction | default(0) | int }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">City</span>
+        <span class="value">{{ case.customer.city | default('Unknown') }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Why This Was Flagged -->
+<div class="card mb-3" style="border-left: 3px solid var(--risk-medium);">
+  <div class="card-title">Why This Was Flagged</div>
+  {% if case.reasons %}
+  <ul class="reason-list">
+    {% for reason in case.reasons %}
+    <li>{{ reason }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-muted">No specific reasons provided.</p>
+  {% endif %}
+</div>
+
+<!-- Recent Activity -->
+<div class="card mb-3">
+  <div class="card-title">Recent Activity</div>
+  {% if case.recent_activity %}
+  <div class="activity-list">
+    {% for activity in case.recent_activity %}
+    <div class="activity-item">
+      <span class="amount">₹{{ activity.amount | default(0) | int }}</span>
+      <span class="time">{{ activity.time | default('unknown') }}</span>
+      <span class="location">{{ activity.type | default('unknown') }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-muted">No recent activity available.</p>
+  {% endif %}
+</div>
+
+<!-- Decision Panel -->
+<div class="card decision-panel">
+  <div class="card-title">Your Decision</div>
+  <div class="decision-buttons">
+    <button class="btn btn-block" onclick="makeDecision('BLOCK')">BLOCK</button>
+    <button class="btn btn-freeze" onclick="makeDecision('FREEZE')">FREEZE ACCOUNT</button>
+    <button class="btn btn-escalate" onclick="makeDecision('ESCALATE')">ESCALATE</button>
+    <button class="btn btn-clear" onclick="makeDecision('CLEAR')">CLEAR</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function makeDecision(action) {
+  const caseId = '{{ case.case_id }}';
+  const button = event.target;
+  
+  // Show loading state
+  const originalText = button.textContent;
+  button.textContent = 'Processing...';
+  button.disabled = true;
+  
+  try {
+    const response = await fetch(`/api/v1/cases/${caseId}/decision`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ask_live_demo_key_12345'
+      },
+      body: JSON.stringify({ action: action })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      showToast(`✓ Case ${action.toLowerCase()}ed successfully`, 'success');
+      
+      // Auto-advance to next case
+      setTimeout(() => {
+        if (data.next_case_id) {
+          window.location.href = `/case/${data.next_case_id}`;
+        } else {
+          window.location.href = '/queue';
+        }
+      }, 800);
+    } else {
+      showToast('Decision failed — please try again', 'error');
+      button.textContent = originalText;
+      button.disabled = false;
+    }
+  } catch (error) {
+    showToast('Decision failed — please try again', 'error');
+    button.textContent = originalText;
+    button.disabled = false;
+  }
+}
+
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+</script>
+{% endblock %}
