@@ -5,16 +5,30 @@
 {% block page_title %}Alert Queue{% endblock %}
 
 {% block content %}
+<!-- Queue Header -->
+<div class="queue-header mb-3">
+  <div class="flex-between">
+    <div>
+      <h2 class="queue-title">{{ open_case_count }} Cases Awaiting Action</h2>
+      <p class="queue-sub">Click a case to investigate, or use quick actions below</p>
+    </div>
+    <div class="queue-controls">
+      <button id="refresh-btn" class="btn-refresh" onclick="location.reload()">↻ Refresh</button>
+      <span id="auto-refresh-label" class="auto-refresh-label">Auto-refresh: ON</span>
+    </div>
+  </div>
+</div>
+
 <!-- Filter Tabs -->
 <div class="flex-between mb-3">
   <div class="filter-tabs">
     <button class="filter-tab active" data-filter="all">All</button>
-    <button class="filter-tab" data-filter="HIGH">HIGH</button>
-    <button class="filter-tab" data-filter="MEDIUM">MEDIUM</button>
+    <button class="filter-tab" data-filter="HIGH">High</button>
+    <button class="filter-tab" data-filter="MEDIUM">Medium</button>
   </div>
-  <div class="flex gap-1">
-    <button class="filter-tab" id="sort-newest" style="padding: 6px 12px; font-size: 12px;">Newest</button>
-    <button class="filter-tab active" id="sort-oldest" style="padding: 6px 12px; font-size: 12px;">Oldest</button>
+  <div class="sort-buttons flex gap-1">
+    <button class="sort-btn" id="sort-newest" data-sort="newest">Newest</button>
+    <button class="sort-btn active" id="sort-oldest" data-sort="oldest">Oldest</button>
   </div>
 </div>
 
@@ -22,7 +36,7 @@
 <div id="case-list">
   {% if cases %}
     {% for case in cases %}
-    <div class="case-card case-{{ case.risk_level.lower() }}" data-risk="{{ case.risk_level }}" onclick="window.location.href='/case/{{ case.case_id }}'">
+    <div class="case-card case-{{ case.risk_level.lower() }}" data-risk="{{ case.risk_level }}" data-case-id="{{ case.case_id }}">
       <div class="case-left">
         <span class="badge badge-{{ case.risk_level.lower() }}">{{ case.risk_level }}</span>
         {% if case.fraud_type %}
@@ -30,13 +44,21 @@
         {% endif %}
       </div>
       <div class="case-middle">
-        <div class="case-name">{{ case.customer_name or 'Unknown' }}</div>
+        <div class="case-name" style="cursor: pointer;" onclick="window.location.href='/case/{{ case.case_id }}'">{{ case.customer_name or 'Unknown' }}</div>
         <div class="case-amount">₹{{ case.amount | default(0) | int }}</div>
         <div class="case-reason">{{ case.reason_summary or 'Flagged for review' }}</div>
       </div>
       <div class="case-right">
-        <span class="case-time">{{ case.minutes_ago }} min ago</span>
-        <a href="/case/{{ case.case_id }}" class="case-review">Review →</a>
+        <div class="case-time-row">
+          <span class="case-time">{{ case.minutes_ago }} min ago</span>
+          <a href="/case/{{ case.case_id }}" class="case-review">Review →</a>
+        </div>
+        <div class="case-actions">
+          <button class="action-btn action-block" onclick="quickAction('{{ case.case_id }}', 'BLOCK', this)">Block</button>
+          <button class="action-btn action-freeze" onclick="quickAction('{{ case.case_id }}', 'FREEZE', this)">Freeze</button>
+          <button class="action-btn action-escalate" onclick="quickAction('{{ case.case_id }}', 'ESCALATE', this)">Escalate</button>
+          <button class="action-btn action-clear" onclick="quickAction('{{ case.case_id }}', 'CLEAR', this)">Clear</button>
+        </div>
       </div>
     </div>
     {% endfor %}
@@ -51,16 +73,103 @@
 
 {% block extra_scripts %}
 <script>
+// No page reload - WebSocket handles real-time updates
+// Stats and queue updates are handled via WebSocket messages
+
+// Quick Action: Block/Freeze/Escalate/Clear
+async function quickAction(caseId, action, btn) {
+  const card = btn.closest('.case-card');
+  
+  // Disable all action buttons on this card
+  card.querySelectorAll('.action-btn').forEach(b => {
+    b.disabled = true;
+    b.style.opacity = '0.5';
+  });
+  btn.textContent = '...';
+  btn.style.opacity = '1';
+
+  try {
+    const response = await fetch(`/api/v1/cases/${caseId}/decision`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ask_live_demo_key_12345'
+      },
+      body: JSON.stringify({ action: action })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Animate card removal
+      card.style.transition = 'all 0.4s ease';
+      card.style.opacity = '0';
+      card.style.transform = 'translateX(100px)';
+      
+      setTimeout(() => {
+        card.remove();
+        
+        // Update count
+        const remaining = document.querySelectorAll('.case-card').length;
+        const countEl = document.querySelector('.queue-title');
+        if (countEl) {
+          countEl.textContent = `${remaining} Case${remaining !== 1 ? 's' : ''} Awaiting Action`;
+        }
+        
+        // Check if queue is empty
+        if (remaining === 0) {
+          document.getElementById('case-list').innerHTML = `
+            <div class="empty-state success">
+              <div class="icon">✓</div>
+              <div class="text">All clear. No open cases.</div>
+            </div>
+          `;
+        }
+      }, 400);
+
+      // Show toast
+      showToast(`✅ Case ${action.toLowerCase()}ED successfully`, 'success');
+    } else {
+      const error = await response.json();
+      showToast(`❌ ${error.detail || 'Failed to process action'}`, 'error');
+      // Re-enable buttons
+      card.querySelectorAll('.action-btn').forEach(b => {
+        b.disabled = false;
+        b.style.opacity = '1';
+      });
+      resetButtonText(btn, action);
+    }
+  } catch (err) {
+    showToast('❌ Network error - check server is running', 'error');
+    card.querySelectorAll('.action-btn').forEach(b => {
+      b.disabled = false;
+      b.style.opacity = '1';
+    });
+    resetButtonText(btn, action);
+  }
+}
+
+function resetButtonText(btn, action) {
+  btn.textContent = action.charAt(0) + action.slice(1).toLowerCase();
+}
+
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
 // Filter tabs functionality
 document.querySelectorAll('.filter-tabs .filter-tab').forEach(tab => {
   tab.addEventListener('click', function() {
-    // Update active state
     this.parentElement.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
     this.classList.add('active');
-    
+
     const filter = this.dataset.filter;
     const caseCards = document.querySelectorAll('.case-card');
-    
+
     caseCards.forEach(card => {
       if (filter === 'all' || card.dataset.risk === filter) {
         card.style.display = 'flex';
@@ -68,6 +177,26 @@ document.querySelectorAll('.filter-tabs .filter-tab').forEach(tab => {
         card.style.display = 'none';
       }
     });
+  });
+});
+
+// Sort buttons functionality
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+
+    const sortOrder = this.dataset.sort;
+    const caseList = document.getElementById('case-list');
+    const cards = Array.from(caseList.querySelectorAll('.case-card'));
+
+    cards.sort((a, b) => {
+      const timeA = parseInt(a.querySelector('.case-time')?.textContent) || 0;
+      const timeB = parseInt(b.querySelector('.case-time')?.textContent) || 0;
+      return sortOrder === 'newest' ? timeA - timeB : timeB - timeA;
+    });
+
+    cards.forEach(card => caseList.appendChild(card));
   });
 });
 </script>

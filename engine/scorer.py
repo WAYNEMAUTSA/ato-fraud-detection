@@ -164,6 +164,23 @@ def create_scorer(model_dir: str = None) -> Scorer:
     return Scorer(model_dir)
 
 
+# Singleton pattern for API usage
+_scorer_instance = None
+
+def get_scorer_singleton(model_dir: str = None) -> Scorer:
+    """Get or create singleton scorer instance (thread-safe)"""
+    global _scorer_instance
+    if _scorer_instance is None:
+        _scorer_instance = Scorer(model_dir)
+    return _scorer_instance
+
+
+def reset_scorer_singleton():
+    """Reset singleton (useful for testing or model reload)"""
+    global _scorer_instance
+    _scorer_instance = None
+
+
 if __name__ == "__main__":
     print("=" * 80)
     print("ATO SHIELD V2 - PHASE 1.5: SCORER SERVICE TEST")

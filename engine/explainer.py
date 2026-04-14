@@ -77,9 +77,9 @@ class SHAPExplainer:
         Generate plain-English explanations for a transaction
         Returns list of explanation strings, sorted by importance
         """
-        # Prepare features
-        from engine.scorer import create_scorer
-        scorer = create_scorer()
+        # Prepare features - use singleton scorer to avoid re-loading models
+        from engine.scorer import get_scorer_singleton
+        scorer = get_scorer_singleton()
         X = scorer.prepare_features(transaction)
         
         # Calculate SHAP values
@@ -190,6 +190,23 @@ class SHAPExplainer:
 def create_explainer(model_path: str = None) -> SHAPExplainer:
     """Factory function to create SHAP explainer"""
     return SHAPExplainer(model_path)
+
+
+# Singleton pattern for API usage
+_explainer_instance = None
+
+def get_explainer_singleton(model_path: str = None) -> SHAPExplainer:
+    """Get or create singleton explainer instance (thread-safe)"""
+    global _explainer_instance
+    if _explainer_instance is None:
+        _explainer_instance = SHAPExplainer(model_path)
+    return _explainer_instance
+
+
+def reset_explainer_singleton():
+    """Reset singleton (useful for testing or model reload)"""
+    global _explainer_instance
+    _explainer_instance = None
 
 
 if __name__ == "__main__":

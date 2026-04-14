@@ -9,39 +9,41 @@
 <div class="card-grid">
   <!-- Threat Level Indicator -->
   <div class="card threat-indicator" style="border-left: 3px solid {{ threat_color }}">
-    <div class="threat-dot {{ threat_level.lower() }}"></div>
+    <div class="threat-dot {{ threat_level }}"></div>
     <div>
-      <div class="threat-label" style="color: {{ threat_color }}">{{ threat_label }}</div>
-      <div class="threat-sub">{{ open_cases }} cases require attention</div>
+      <div class="threat-label" style="color: {{ threat_color }}" data-stat="threat_label">{{ threat_label }}</div>
+      <div class="threat-sub" data-stat="threat_sub">{{ open_cases }} cases require attention</div>
     </div>
   </div>
-  
+
   <!-- Open Cases -->
   <div class="card stat-card">
     <div class="stat-label">Cases Open</div>
-    <div class="stat-value">{{ open_cases }}</div>
+    <div class="stat-value" data-stat="open_cases">{{ open_cases }}</div>
     <div class="stat-sub">awaiting decision</div>
   </div>
-  
+
   <!-- Screened Today -->
   <div class="card stat-card">
     <div class="stat-label">Screened Today</div>
-    <div class="stat-value">{{ screened_count | default(0) | int }}</div>
+    <div class="stat-value" data-stat="screened_count">{{ screened_count | default(0) | int }}</div>
     <div class="stat-sub">transactions</div>
   </div>
-  
+
   <!-- Protected Value -->
   <div class="card stat-card">
     <div class="stat-label">Protected Today</div>
-    <div class="stat-value" style="color: var(--risk-low)">₹{{ protected_value | default('0') }}</div>
-    <div class="stat-sub">across {{ screened_count | default(0) }} transactions</div>
+    <div class="stat-value" style="color: var(--risk-low)" data-stat="protected_value">₹{{ protected_value | default('0') }}</div>
+    <div class="stat-sub">across <span data-stat="screened_count">{{ screened_count | default(0) }}</span> transactions</div>
   </div>
 </div>
 
 <!-- Transaction Volume Chart -->
 <div class="card chart-container mb-3">
   <div class="card-title">Transaction Volume — Today</div>
-  <canvas id="volumeChart" height="100"></canvas>
+  <div class="chart-wrapper">
+    <canvas id="volumeChart"></canvas>
+  </div>
 </div>
 
 <!-- Bottom Row: Recent Flags + Fraud Type Breakdown -->
@@ -59,8 +61,13 @@
       </div>
       {% endfor %}
     {% else %}
-      <div class="empty-state muted">
-        <div class="text">🛡 System active. Screening transactions.</div>
+      <div class="empty-state" style="padding: 24px 16px; text-align: center;">
+        <div style="font-size: 32px; margin-bottom: 8px;">🛡️</div>
+        <div style="color: var(--text-primary); font-weight: 500; margin-bottom: 4px;">No flagged cases yet</div>
+        <div class="muted" style="font-size: 13px; line-height: 1.5;">
+          The system is actively screening transactions.<br>
+          Suspicious activity will appear here in real-time.
+        </div>
       </div>
     {% endif %}
   </div>
@@ -68,7 +75,9 @@
   <!-- Today's Breakdown -->
   <div class="card">
     <div class="card-title">Today's Breakdown</div>
-    <canvas id="fraudTypeChart" height="200"></canvas>
+    <div class="chart-wrapper chart-wrapper-doughnut">
+      <canvas id="fraudTypeChart"></canvas>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -76,9 +85,12 @@
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
+// No page reload - WebSocket handles all real-time updates
+// Stats are updated via WebSocket messages in ws_client.js
+
 // Transaction Volume Chart
 const volumeCtx = document.getElementById('volumeChart').getContext('2d');
-new Chart(volumeCtx, {
+volumeChart = new Chart(volumeCtx, {
   type: 'bar',
   data: {
     labels: {{ volume_labels | tojson }},
@@ -124,7 +136,7 @@ new Chart(volumeCtx, {
 
 // Fraud Type Breakdown Chart
 const fraudTypeCtx = document.getElementById('fraudTypeChart').getContext('2d');
-new Chart(fraudTypeCtx, {
+fraudTypeChart = new Chart(fraudTypeCtx, {
   type: 'doughnut',
   data: {
     labels: {{ fraud_type_labels | tojson }},

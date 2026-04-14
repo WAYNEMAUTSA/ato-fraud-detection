@@ -2,11 +2,11 @@
 
 {% block title %}Case #{{ case_id }} — ATO Shield v2{% endblock %}
 
-{% block page_title %}<a href="/queue" style="color: var(--text-secondary); margin-right: 12px;">← Back to Queue</a>{% endblock %}
+{% block page_title %}<a href="/queue" class="back-link">← Back to Queue</a>{% endblock %}
 
 {% block content %}
 <!-- Case Header -->
-<div class="card case-header" style="background: var(--risk-{{ case.risk_level.lower() }}-bg); border-left: 3px solid var(--risk-{{ case.risk_level.lower() }});">
+<div class="card case-header case-header-{{ case.risk_level.lower() }}">
   <div class="flex-between">
     <div>
       <div class="case-title">
@@ -17,8 +17,8 @@
         Flagged {{ case.minutes_ago }} minutes ago · Transaction {{ case.transaction_id }}
       </div>
     </div>
-    <div style="color: var(--text-dim); font-size: 12px;">
-      Case #{{ case.case_id[:8].upper() }}
+    <div class="case-id">
+      Case #{{ case.case_id_short }}
     </div>
   </div>
 </div>
@@ -129,8 +129,7 @@ async function makeDecision(action) {
     const response = await fetch(`/api/v1/cases/${caseId}/decision`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ask_live_demo_key_12345'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ action: action })
     });

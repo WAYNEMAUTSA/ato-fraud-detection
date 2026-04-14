@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}ATO Shield v2{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
-  <script src="{{ url_for('static', path='/ws_client.js') }}" defer></script>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/ws_client.js" defer></script>
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -27,18 +27,18 @@
           <span>Queue</span>
           <span class="badge-count" id="queue-badge">{{ open_case_count or 0 }}</span>
         </a>
-        <a href="/dashboard" class="nav-item {% if active_page == 'cases' %}active{% endif %}">
+        <a href="/queue" class="nav-item {% if active_page == 'cases' %}active{% endif %}">
           <span class="icon">◉</span>
           <span>Cases</span>
         </a>
       </nav>
       
       <div class="sidebar-footer">
-        <a href="/dashboard" class="nav-item">
+        <a href="#" class="nav-item" onclick="openSettingsModal(); return false;">
           <span class="icon">⚙</span>
           <span>Settings</span>
         </a>
-        <a href="/dashboard" class="nav-item">
+        <a href="#" class="nav-item" onclick="signOut(); return false;">
           <span class="icon">→</span>
           <span>Sign Out</span>
         </a>
@@ -50,9 +50,9 @@
       <!-- Top Bar -->
       <header class="topbar">
         <h1 class="topbar-title">{% block page_title %}Overview{% endblock %}</h1>
-        <div class="topbar-user">
-          <div class="user-avatar">DA</div>
-          <span>Demo Analyst</span>
+        <div class="topbar-user" onclick="openProfileModal()" style="cursor: pointer;">
+          <div class="user-avatar">WM</div>
+          <span>Wayne Mautsa</span>
           <span>▼</span>
         </div>
       </header>
@@ -70,5 +70,182 @@
   </div>
   
   {% block extra_scripts %}{% endblock %}
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal" style="display: none;">
+    <div class="modal-overlay" onclick="closeSettingsModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⚙ Settings</h2>
+        <button class="modal-close" onclick="closeSettingsModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h3>General</h3>
+          <div class="setting-item">
+            <label>Auto-refresh Interval</label>
+            <select id="refresh-interval">
+              <option value="3000">3 seconds</option>
+              <option value="5000" selected>5 seconds</option>
+              <option value="10000">10 seconds</option>
+              <option value="30000">30 seconds</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label>Default Queue Sort</label>
+            <select id="default-sort">
+              <option value="oldest" selected>Oldest First</option>
+              <option value="newest">Newest First</option>
+              <option value="risk">Risk Level</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Notifications</h3>
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="toast-notifications" checked>
+              <span class="checkmark"></span>
+              Enable Toast Notifications
+            </label>
+          </div>
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="sound-alerts">
+              <span class="checkmark"></span>
+              Sound Alerts for High Risk Cases
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Display</h3>
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="compact-mode">
+              <span class="checkmark"></span>
+              Compact Mode (Reduce Spacing)
+            </label>
+          </div>
+          <div class="setting-item">
+            <label>Chart Animation</label>
+            <select id="chart-animation">
+              <option value="smooth" selected>Smooth</option>
+              <option value="fast">Fast</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>API Configuration</h3>
+          <div class="setting-item">
+            <label>API Key</label>
+            <input type="password" id="api-key-input" placeholder="Enter API key..." value="ask_live_demo_key_12345">
+          </div>
+          <div class="setting-item">
+            <label>Webhook URL</label>
+            <input type="text" id="webhook-url" placeholder="https://your-bank.com/webhook">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analyst Profile Modal -->
+  <div id="profile-modal" style="display: none;">
+    <div class="modal-overlay" onclick="closeProfileModal()"></div>
+    <div class="modal-content modal-profile">
+      <div class="modal-header">
+        <h2>👤 Analyst Profile</h2>
+        <button class="modal-close" onclick="closeProfileModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="profile-header">
+          <div class="profile-avatar">WM</div>
+          <div class="profile-info">
+            <h3>Wayne Mautsa</h3>
+            <p class="profile-role">Fraud Detection Officer</p>
+            <p class="profile-dept">HDFC Bank — Risk & Compliance Division</p>
+            <p class="profile-id">Employee ID: HDFC-FD-2024-0847</p>
+          </div>
+        </div>
+
+        <div class="profile-details">
+          <div class="detail-row">
+            <span class="detail-label">Branch</span>
+            <span class="detail-value">Mumbai Central Branch</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Department</span>
+            <span class="detail-value">Financial Crimes Prevention</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Clearance Level</span>
+            <span class="detail-value">Tier 3 — Senior Analyst</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Assigned Since</span>
+            <span class="detail-value">January 2024</span>
+          </div>
+        </div>
+
+        <div class="profile-stats">
+          <div class="profile-stat">
+            <div class="profile-stat-value" id="profile-cases-reviewed">0</div>
+            <div class="profile-stat-label">Cases Reviewed</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-value" id="profile-accuracy">0%</div>
+            <div class="profile-stat-label">Accuracy Rate</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-value" id="profile-avg-time">0m</div>
+            <div class="profile-stat-label">Avg Review Time</div>
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <h4>Recent Activity</h4>
+          <div class="activity-list" id="profile-recent-activity">
+            <div class="empty-state">
+              <p>No recent activity</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <h4>Performance Metrics</h4>
+          <div class="detail-list">
+            <div class="detail-item">
+              <span class="label">Blocked</span>
+              <span class="value" id="profile-blocked">0</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Frozen</span>
+              <span class="value" id="profile-frozen">0</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Escalated</span>
+              <span class="value" id="profile-escalated">0</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Cleared</span>
+              <span class="value" id="profile-cleared">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeProfileModal()">Close</button>
+        <button class="btn btn-primary" onclick="signOut()">Sign Out</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

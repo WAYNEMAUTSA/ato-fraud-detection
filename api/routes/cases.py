@@ -19,9 +19,14 @@ router = APIRouter()
 
 def minutes_ago(created_at: datetime) -> int:
     """Calculate minutes between case creation and now"""
-    now = datetime.now()
-    delta = now - created_at
-    return max(0, int(delta.total_seconds() / 60))
+    if created_at is None:
+        return 0
+    try:
+        now = datetime.now()
+        delta = now - created_at
+        return max(0, int(delta.total_seconds() / 60))
+    except (TypeError, ValueError):
+        return 0
 
 
 @router.get("/cases", response_model=list[CaseSummary])
@@ -69,7 +74,7 @@ async def list_cases(
 
 @router.get("/cases/{case_id}", response_model=CaseDetail)
 async def get_case(
-    case_id: UUID,
+    case_id: str,
     bank: Bank = Depends(validate_api_key),
     db: Session = Depends(get_db)
 ):
@@ -77,8 +82,8 @@ async def get_case(
     Get full case detail for investigation screen.
     Includes transaction, customer profile, SHAP reasons, and recent activity.
     """
-    case_data = get_case_by_id(db, case_id, bank.bank_id)
-    
+    case_data = get_case_by_id(db, case_id, str(bank.bank_id))
+
     if not case_data:
         raise HTTPException(status_code=404, detail="Case not found")
     
@@ -104,22 +109,26 @@ async def get_case(
     }
     
     # Get recent activity (last 5 transactions for this customer)
+    # Note: SQLite JSON query - get all transactions and filter in Python
     recent_txns = db.query(Transaction).filter(
-        Transaction.bank_id == bank.bank_id,
-        Transaction.payload['nameOrig'].astext == txn_payload.get('nameOrig')
+        Transaction.bank_id == bank.bank_id
     ).order_by(
         Transaction.received_at.desc()
-    ).limit(6).all()  # Limit 6 to exclude current, take 5
-    
+    ).limit(50).all()  # Get recent transactions to filter
+
     recent_activity = []
-    for txn in recent_txns[1:]:  # Skip current transaction
-        payload = txn.payload
-        recent_activity.append({
-            'amount': payload.get('amount'),
-            'type': payload.get('type'),
-            'time': str(txn.received_at),
-            'destination': payload.get('nameDest')
-        })
+    customer_name = txn_payload.get('nameOrig')
+    # Filter in Python for SQLite compatibility
+    for txn in recent_txns:
+        if txn.payload.get('nameOrig') == customer_name and txn.transaction_id != txn_payload.get('transaction_id'):
+            recent_activity.append({
+                'amount': txn.payload.get('amount'),
+                'type': txn.payload.get('type'),
+                'time': str(txn.received_at),
+                'destination': txn.payload.get('nameDest')
+            })
+        if len(recent_activity) >= 5:
+            break
     
     return CaseDetail(
         case_id=case.case_id,

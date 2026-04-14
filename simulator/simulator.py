@@ -87,17 +87,26 @@ class TransactionSimulator:
         except requests.exceptions.Timeout:
             return {"error": "Request timeout"}
     
-    def run_simulation(self, count: int = 100, speed: float = 0.5, fraud_weight: float = 0.15):
-        """Run continuous transaction simulation"""
+    def run_simulation(self, count: int = None, speed: float = 0.5, fraud_weight: float = 0.15):
+        """Run continuous transaction simulation (runs until stopped if count is None)"""
         print("\n" + "=" * 80)
         print(" 🔄 ATO SHIELD V2 - TRANSACTION SIMULATOR")
         print("=" * 80)
-        print(f"\n📊 Simulating {count} transactions...")
-        print(f"⚡ Speed: {speed}s between transactions")
-        print(f"🎯 Fraud rate: {fraud_weight*100:.0f}%")
-        print(f"🔗 API: {self.api_url}")
-        print("\n" + "-" * 80)
         
+        if count is None:
+            print(f"\n📊 Running continuous simulation...")
+            print(f"⚡ Speed: {speed}s between transactions")
+            print(f"🎯 Fraud rate: {fraud_weight*100:.0f}%")
+            print(f"🔗 API: {self.api_url}")
+            print("\n💡 Simulation will run until stopped via /simulate/stop or Ctrl+C")
+        else:
+            print(f"\n📊 Simulating {count} transactions...")
+            print(f"⚡ Speed: {speed}s between transactions")
+            print(f"🎯 Fraud rate: {fraud_weight*100:.0f}%")
+            print(f"🔗 API: {self.api_url}")
+        
+        print("\n" + "-" * 80)
+
         self.running = True
         stats = {
             'total': 0,
@@ -108,28 +117,32 @@ class TransactionSimulator:
             'fraud_missed': 0,
             'false_positives': 0
         }
-        
+
         start_time = time.time()
-        
+        transaction_count = 0
+
         try:
-            for i in range(count):
-                if not self.running:
+            while self.running:
+                # Stop if we've reached the target count (if specified)
+                if count is not None and transaction_count >= count:
+                    print(f"\n✅ Reached target of {count} transactions")
                     break
-                
+
                 # Sample and post transaction
                 txn = self.sample_transaction(fraud_weight=fraud_weight)
                 result = self.post_transaction(txn)
-                
+                transaction_count += 1
+
                 # Update stats
                 stats['total'] += 1
-                
+
                 if 'error' in result:
-                    print(f"\n❌ Transaction {i+1}: {result['error']}")
+                    print(f"\n❌ Transaction {transaction_count}: {result['error']}")
                     continue
-                
+
                 risk_level = result.get('risk_level', 'UNKNOWN')
                 stats[risk_level.lower()] = stats.get(risk_level.lower(), 0) + 1
-                
+
                 # Check detection accuracy
                 actual_fraud = result.get('actual_fraud', False)
                 if actual_fraud and risk_level in ['MEDIUM', 'HIGH']:
@@ -143,43 +156,45 @@ class TransactionSimulator:
                     emoji = "⚠️"
                 else:
                     emoji = "✅"
-                
+
                 # Print result
                 case_id = result.get('case_id', '')
                 fraud_type = result.get('fraud_type') or ''
-                
-                print(f"{emoji} [{i+1:3d}/{count}] {txn['type']:10s} Rs.{txn['amount']:>12,.2f} -> {risk_level:6s} {fraud_type:3s} Case: {str(case_id)[:8] if case_id else 'N/A':8s}")
-                
+
+                print(f"{emoji} [{transaction_count:5d}] {txn['type']:10s} Rs.{txn['amount']:>12,.2f} -> {risk_level:6s} {fraud_type:3s} Case: {str(case_id)[:8] if case_id else 'N/A':8s}")
+
                 # Progress indicator every 10 transactions
-                if (i + 1) % 10 == 0:
+                if transaction_count % 10 == 0:
                     elapsed = time.time() - start_time
-                    rate = (i + 1) / elapsed
-                    print(f"   └─ Rate: {rate:.1f} txn/s | HIGH: {stats['high']} | MEDIUM: {stats['medium']} | LOW: {stats['low']}")
-                
+                    rate = transaction_count / elapsed
+                    print(f"   └─ Rate: {rate:.1f} txn/s | Total: {transaction_count} | HIGH: {stats['high']} | MEDIUM: {stats['medium']} | LOW: {stats['low']}")
+
                 time.sleep(speed)
-        
+
         except KeyboardInterrupt:
             print("\n\n⏹️  Simulation stopped by user")
-        
+
         # Final statistics
         elapsed = time.time() - start_time
-        print("\n" + "=" * 80)
-        print(" 📊 SIMULATION RESULTS")
-        print("=" * 80)
-        print(f"\n⏱️  Duration: {elapsed:.1f}s")
-        print(f"📈 Rate: {stats['total']/elapsed:.1f} transactions/second")
-        print(f"\n📋 Risk Distribution:")
-        print(f"   LOW:     {stats['low']:3d} ({stats['low']/stats['total']*100:.1f}%)")
-        print(f"   MEDIUM:  {stats['medium']:3d} ({stats['medium']/stats['total']*100:.1f}%)")
-        print(f"   HIGH:    {stats['high']:3d} ({stats['high']/stats['total']*100:.1f}%)")
-        print(f"\n🎯 Detection Performance:")
-        total_fraud = stats['fraud_detected'] + stats['fraud_missed']
-        if total_fraud > 0:
-            detection_rate = stats['fraud_detected'] / total_fraud * 100
-            print(f"   Fraud Detected: {stats['fraud_detected']}/{total_fraud} ({detection_rate:.1f}%)")
-            print(f"   Fraud Missed:   {stats['fraud_missed']}/{total_fraud}")
-        print(f"   False Positives: {stats['false_positives']}")
-        print("\n" + "=" * 80)
+        if elapsed > 0:
+            print("\n" + "=" * 80)
+            print(" 📊 SIMULATION RESULTS")
+            print("=" * 80)
+            print(f"\n⏱️  Duration: {elapsed:.1f}s")
+            print(f"📈 Rate: {stats['total']/elapsed:.1f} transactions/second")
+            print(f"📋 Total Transactions: {stats['total']}")
+            print(f"\n📋 Risk Distribution:")
+            print(f"   LOW:     {stats['low']:5d} ({stats['low']/stats['total']*100:.1f}%)")
+            print(f"   MEDIUM:  {stats['medium']:5d} ({stats['medium']/stats['total']*100:.1f}%)")
+            print(f"   HIGH:    {stats['high']:5d} ({stats['high']/stats['total']*100:.1f}%)")
+            print(f"\n🎯 Detection Performance:")
+            total_fraud = stats['fraud_detected'] + stats['fraud_missed']
+            if total_fraud > 0:
+                detection_rate = stats['fraud_detected'] / total_fraud * 100
+                print(f"   Fraud Detected: {stats['fraud_detected']}/{total_fraud} ({detection_rate:.1f}%)")
+                print(f"   Fraud Missed:   {stats['fraud_missed']}/{total_fraud}")
+            print(f"   False Positives: {stats['false_positives']}")
+            print("\n" + "=" * 80)
     
     def stop(self):
         """Stop the simulation"""

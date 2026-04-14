@@ -58,17 +58,24 @@ def get_case_transaction(db: Session, case_id: UUID, bank_id: UUID):
     return transaction
 
 
-def record_decision(db: Session, case_id: UUID, analyst_id: UUID, action: str):
+def record_decision(db: Session, case_id, analyst_id, action: str):
     """Record analyst decision"""
+    # Convert UUIDs to strings for SQLite compatibility
+    from uuid import uuid4
+    case_id_str = str(case_id)
+    analyst_id_str = str(analyst_id)
+    decision_id = str(uuid4())
+    
     decision = Decision(
-        case_id=case_id,
-        analyst_id=analyst_id,
+        decision_id=decision_id,
+        case_id=case_id_str,
+        analyst_id=analyst_id_str,
         action=action
     )
     db.add(decision)
-    
+
     # Mark case as resolved
-    case = db.query(Case).filter(Case.case_id == case_id).first()
+    case = db.query(Case).filter(Case.case_id == case_id_str).first()
     if case:
         case.status = "RESOLVED"
     
